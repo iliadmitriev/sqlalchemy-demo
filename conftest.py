@@ -5,7 +5,7 @@ import pytest
 from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 from sqlalchemy import URL
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 
 @pytest.fixture(scope="session")
@@ -16,7 +16,7 @@ async def get_conn_url():
         port=5433,
         username="item",
         password="secret",
-        database="item"
+        database="item",
     )
 
 
@@ -24,11 +24,7 @@ async def get_conn_url():
 async def get_engine(get_conn_url: URL):
     engine = create_async_engine(
         get_conn_url,
-        connect_args={
-            "server_settings": {
-                "application_name": "alchemy-demo-test"
-            }
-        }
+        connect_args={"server_settings": {"application_name": "alchemy-demo-test"}},
     )
     with mock.patch("sqlalchemy.ext.asyncio.create_async_engine") as patched_engine:
         patched_engine.return_value = engine
@@ -46,10 +42,11 @@ async def get_engine(get_conn_url: URL):
 @pytest.fixture(scope="session")
 async def add_some_users(get_engine):
     from db import User
+
     test_users = [
         User(name="user1", login="user1"),
         User(name="user2", login="user2"),
-        User(name="user3", login="user3")
+        User(name="user3", login="user3"),
     ]
     async with AsyncSession(get_engine, expire_on_commit=False) as session:
         session.add_all(test_users)
@@ -61,6 +58,7 @@ async def add_some_users(get_engine):
 @pytest.fixture(scope="session")
 async def get_app(get_engine):
     from main import app
+
     async with LifespanManager(app):
         yield app
 
