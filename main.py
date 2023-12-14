@@ -1,12 +1,12 @@
 """Главный модуль."""
-from datetime import datetime
+from datetime import datetime, timezone
+import sqlalchemy
 
 import uvicorn
-from fastapi.security import HTTPBearer
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import HTTPBearer
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-
 
 from db import Item, User, get_auth, get_session
 from schemas import ItemDB, ItemPatch, ItemPost, UserDB, UserPost
@@ -18,22 +18,22 @@ auth_scheme = HTTPBearer()
 
 @app.post('/user', response_model=UserDB)
 async def post_user(
-    user: UserPost,
+    user_post: UserPost,
     session: AsyncSession = Depends(get_session),
     _: User = Depends(get_auth),
 ) -> User:
     """Создание пользователя."""
     try:
-        new_user = User.from_pd(user)
-        session.add(new_user)
+        user = User(**user_post.model_dump(exclude_unset=True))
+        session.add(user)
         await session.flush()  # validate at db level
     except IntegrityError as ex:
         await session.rollback()
         raise HTTPException(status_code=400, detail=f"Data [{user}] can't be added") from ex
 
     await session.commit()
-    await session.refresh(new_user)
-    return new_user
+    await session.refresh(user)
+    return user
 
 
 @app.get('/user/{user_id}', response_model=UserDB)
@@ -51,36 +51,40 @@ async def get_user(
 
 @app.post('/item', response_model=ItemDB)
 async def post_item(
-    item: ItemPost,
+    item_post: ItemPost,
     session: AsyncSession = Depends(get_session),
     auth: User = Depends(get_auth),
 ) -> Item:
     """Добавление элемента."""
-    new_item = Item.from_pd(item)
-    new_item.user_id = auth.id
-    new_item.created = datetime.utcnow()
-    session.add(new_item)
+    item = Item(**item_post.model_dump(exclude_unset=True))
+    item.user_id = auth.id
+    item.created = datetime.now(timezone.utc)
+    item.updated = sqlalchemy.func.now()
+    session.add(item)
     await session.flush()
     await session.commit()
-    await session.refresh(new_item)
-    return new_item
+    await session.refresh(item)
+    return item
 
 
 @app.patch('/item/{item_id}', response_model=ItemDB)
 async def patch_item(
     item_id: int,
-    item: ItemPatch,
+    item_patch: ItemPatch,
     session: AsyncSession = Depends(get_session),
     _: User = Depends(get_auth),
 ) -> Item:
     """Обновление элемента."""
-    patched_item = await session.get_one(Item, item_id)
-    patched_item.update_fields(item, exclude_unset=True)
-    session.add(patched_item)
+    item = await session.get_one(Item, item_id)
+    for key, value in item_patch.model_dump(exclude_unset=True).items():
+        setattr(item, key, value)
+
+    item.updated = sqlalchemy.func.now()
+    session.add(item)
     await session.flush()
     await session.commit()
-    await session.refresh(patched_item)
-    return patched_item
+    await session.refresh(item)
+    return item
 
 
 if __name__ == '__main__':

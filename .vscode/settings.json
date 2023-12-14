@@ -1,0 +1,8 @@
+{
+    "pylint.importStrategy": "fromEnvironment",
+    "autopep8.importStrategy": "fromEnvironment",
+    "black-formatter.importStrategy": "fromEnvironment",
+    "flake8.importStrategy": "fromEnvironment",
+    "isort.importStrategy": "fromEnvironment",
+    "mypy-type-checker.importStrategy": "fromEnvironment"
+}

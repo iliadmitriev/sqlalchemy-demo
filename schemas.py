@@ -1,8 +1,11 @@
 """Модуль схем."""
-from datetime import datetime
+from datetime import datetime, timezone
+import logging
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+logger = logging.getLogger(__name__)
 
 
 class UserPost(BaseModel):
@@ -28,12 +31,13 @@ class ItemPost(BaseModel):
 
 
 class ItemPatch(BaseModel):
-    """Элемент переданный в PATHCH-запросе."""
+    """Элемент переданный в PATCH-запросе."""
 
-    title: Optional[str]
+    title: Optional[str] = None
     weight: Optional[float]
-    created: Optional[datetime]
-    user_id: Optional[int]
+    created: Optional[datetime] = None
+    updated: Optional[datetime] = None
+    user_id: Optional[int] = None
 
 
 class ItemDB(ItemPost):
@@ -43,4 +47,5 @@ class ItemDB(ItemPost):
 
     id: int
     created: datetime
+    updated: datetime
     user_id: int
