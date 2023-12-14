@@ -34,7 +34,7 @@ class ItemPatch(BaseModel):
     """Элемент переданный в PATCH-запросе."""
 
     title: Optional[str] = None
-    weight: Optional[float]
+    weight: Optional[float] = None
     created: Optional[datetime] = None
     updated: Optional[datetime] = None
     user_id: Optional[int] = None
